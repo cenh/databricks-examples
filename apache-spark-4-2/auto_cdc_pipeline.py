@@ -7,7 +7,7 @@
 #
 # Setup (run ONCE from a normal notebook / SQL editor, not in this pipeline):
 #
-#   CREATE OR REPLACE TABLE cenh_testing.default.customers_cdc_raw
+#   CREATE OR REPLACE TABLE testing.default.customers_cdc_raw
 #   AS SELECT * FROM (VALUES
 #     (100, 'Ada Lovelace', 'London',     'INSERT', 1),
 #     (101, 'Alan Turing',  'Manchester', 'INSERT', 1),
@@ -20,10 +20,10 @@
 #   Workflows > Pipelines > Create pipeline (Lakeflow Declarative Pipeline)
 #   - Serverless, OR Pro/Advanced edition (required by the Auto CDC APIs)
 #   - Source code: this file
-#   - Default catalog: cenh_testing   Default schema: default
+#   - Default catalog: testing   Default schema: default
 #   Then click Start. The graph shows customers_changes -> customers_current.
 #
-# Result in cenh_testing.default.customers_current:
+# Result in testing.default.customers_current:
 #   100 Ada Lovelace  London      (insert)
 #   101 Alan Turing   Cambridge   (updated from Manchester)
 #   102 is deleted and does not appear
@@ -37,7 +37,7 @@ import pyspark.sql.functions as F
 # A streaming view over the raw change feed
 @dp.view
 def customers_changes():
-    return spark.readStream.table("cenh_testing.default.customers_cdc_raw")
+    return spark.readStream.table("testing.default.customers_cdc_raw")
 
 # COMMAND ----------
 

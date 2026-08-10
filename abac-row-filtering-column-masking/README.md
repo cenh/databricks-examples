@@ -15,3 +15,8 @@ The notebook creates a demo table, defines a governed tag taxonomy, registers a 
 - Unity Catalog enabled workspace
 - Databricks Runtime 16.4+ or serverless compute (required to read ABAC-protected tables)
 - `MANAGE` privilege on the target catalog
+- Permission to create account-level governed tags (workspace/account admin, or a delegated tag policy)
+
+## Setup
+
+The notebook is parameterized with widgets at the top: `catalog` (default `prod_analytics`), `schema`, and `security_schema`. Set `catalog` to a Unity Catalog catalog you have `MANAGE` on before running. Run the cells top to bottom: the notebook creates a demo `transactions` table, the governed tag taxonomy, the masking and row-filter UDFs, and catalog-level ABAC policies, verifies masking and row filtering from PySpark, then the final Cleanup section drops the policies, UDFs, tag assignments, and demo table. The account-level governed tags are intentionally left in place (their `DROP` is commented out in Cleanup), since governed tags are a shared, account-level taxonomy.

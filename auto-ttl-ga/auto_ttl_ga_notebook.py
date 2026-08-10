@@ -1,9 +1,12 @@
 # Databricks notebook source
-# Auto-TTL in Databricks: Now GA
-# Author: Christian Hansen (https://medium.com/@cralle)
-# Published: June 2026
-# This notebook contains all code examples from the Medium article:
-# "Auto-TTL in Databricks is Now GA: Retention Policies That Actually Work"
+# MAGIC %md
+# MAGIC # Auto-TTL in Databricks: Automatic Row Deletion That Actually Works
+# MAGIC
+# MAGIC **Article:** [Auto-TTL in Databricks: Automatic Row Deletion That Actually Works](https://medium.com/@cralle/auto-ttl-in-databricks-automated-data-retention-done-properly-5ea511b45c1d?sk=105895af20d93c0c0cd4b507029229e2)
+# MAGIC
+# MAGIC **Author:** Christian Hansen (https://medium.com/@cralle)
+# MAGIC
+# MAGIC This notebook covers setting an Auto-TTL policy at creation time and on an existing table, verifying and removing a policy, reading from an Auto-TTL table with Structured Streaming, and monitoring Auto-TTL activity and cost through system tables.
 
 # COMMAND ----------
 
@@ -13,16 +16,16 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC USE CATALOG cenh_testing;
+# MAGIC USE CATALOG testing;
 # MAGIC USE SCHEMA default;
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC -- Create a fresh table for testing Auto-TTL
-# MAGIC DROP TABLE IF EXISTS cenh_testing.default.user_events;
+# MAGIC DROP TABLE IF EXISTS testing.default.user_events;
 # MAGIC
-# MAGIC CREATE TABLE cenh_testing.default.user_events (
+# MAGIC CREATE TABLE testing.default.user_events (
 # MAGIC   user_id     BIGINT,
 # MAGIC   event_type  STRING,
 # MAGIC   event_time  TIMESTAMP,
@@ -33,7 +36,7 @@
 
 # MAGIC %sql
 # MAGIC -- Insert some sample data: mix of recent and old events
-# MAGIC INSERT INTO cenh_testing.default.user_events VALUES
+# MAGIC INSERT INTO testing.default.user_events VALUES
 # MAGIC   (1, 'click',    current_timestamp() - INTERVAL 5  DAY, 'recent event'),
 # MAGIC   (2, 'view',     current_timestamp() - INTERVAL 15 DAY, 'recent event'),
 # MAGIC   (3, 'purchase', current_timestamp() - INTERVAL 45 DAY, 'old event - will expire'),
@@ -43,7 +46,7 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM cenh_testing.default.user_events ORDER BY event_time;
+# MAGIC SELECT * FROM testing.default.user_events ORDER BY event_time;
 
 # COMMAND ----------
 
@@ -54,7 +57,7 @@
 
 # MAGIC %sql
 # MAGIC -- Retain rows for 30 days after event_time
-# MAGIC ALTER TABLE cenh_testing.default.user_events DELETE ROWS 30 DAYS AFTER event_time;
+# MAGIC ALTER TABLE testing.default.user_events DELETE ROWS 30 DAYS AFTER event_time;
 
 # COMMAND ----------
 
@@ -64,9 +67,9 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC DROP TABLE IF EXISTS cenh_testing.default.user_events_with_ttl;
+# MAGIC DROP TABLE IF EXISTS testing.default.user_events_with_ttl;
 # MAGIC
-# MAGIC CREATE TABLE cenh_testing.default.user_events_with_ttl (
+# MAGIC CREATE TABLE testing.default.user_events_with_ttl (
 # MAGIC   user_id     BIGINT,
 # MAGIC   event_type  STRING,
 # MAGIC   event_time  TIMESTAMP,
@@ -83,13 +86,13 @@
 
 # MAGIC %sql
 # MAGIC -- Full table description; look for autottl.expireInDays and autottl.timestampColumn
-# MAGIC DESCRIBE TABLE EXTENDED cenh_testing.default.user_events;
+# MAGIC DESCRIBE TABLE EXTENDED testing.default.user_events;
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC -- Just the table properties
-# MAGIC SHOW TBLPROPERTIES cenh_testing.default.user_events;
+# MAGIC SHOW TBLPROPERTIES testing.default.user_events;
 
 # COMMAND ----------
 
@@ -107,8 +110,15 @@ df = (
     spark.readStream
     .format("delta")
     .option("skipChangeCommits", "true")
-    .table("cenh_testing.default.user_events")
+    .table("testing.default.user_events")
 )
+
+# This notebook drops and recreates user_events on every run, so the table gets a
+# new Delta identity each time. A reused checkpoint would still point at the old
+# table and fail, so start the stream from a clean checkpoint and a clean target.
+checkpoint_path = "/tmp/auto_ttl_demo_checkpoint"
+dbutils.fs.rm(checkpoint_path, True)
+spark.sql("DROP TABLE IF EXISTS testing.default.user_events_downstream")
 
 # Example: write to a downstream table
 # Use trigger(availableNow=True) on serverless clusters (ProcessingTime is not supported)
@@ -117,8 +127,8 @@ query = (
     .format("delta")
     .outputMode("append")
     .trigger(availableNow=True)
-    .option("checkpointLocation", "/tmp/auto_ttl_demo_checkpoint")
-    .toTable("cenh_testing.default.user_events_downstream")
+    .option("checkpointLocation", checkpoint_path)
+    .toTable("testing.default.user_events_downstream")
 )
 
 # Wait for the trigger to complete
@@ -175,7 +185,7 @@ query.awaitTermination()
 
 # MAGIC %sql
 # MAGIC -- Review operation history on a specific table
-# MAGIC DESCRIBE HISTORY cenh_testing.default.user_events;
+# MAGIC DESCRIBE HISTORY testing.default.user_events;
 
 # COMMAND ----------
 
@@ -185,13 +195,13 @@ query.awaitTermination()
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC ALTER TABLE cenh_testing.default.user_events DROP ROW DELETION;
+# MAGIC ALTER TABLE testing.default.user_events DROP ROW DELETION;
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC -- Confirm the policy has been removed
-# MAGIC SHOW TBLPROPERTIES cenh_testing.default.user_events;
+# MAGIC SHOW TBLPROPERTIES testing.default.user_events;
 
 # COMMAND ----------
 
@@ -201,15 +211,20 @@ query.awaitTermination()
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC DROP TABLE IF EXISTS cenh_testing.default.user_events;
-# MAGIC DROP TABLE IF EXISTS cenh_testing.default.user_events_with_ttl;
-# MAGIC DROP TABLE IF EXISTS cenh_testing.default.user_events_downstream;
+# MAGIC DROP TABLE IF EXISTS testing.default.user_events;
+# MAGIC DROP TABLE IF EXISTS testing.default.user_events_with_ttl;
+# MAGIC DROP TABLE IF EXISTS testing.default.user_events_downstream;
+
+# COMMAND ----------
+
+# Remove the streaming checkpoint so the notebook can be re-run cleanly
+dbutils.fs.rm("/tmp/auto_ttl_demo_checkpoint", True)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ---
-# MAGIC **Source:** [Automatic row deletion with auto time-to-live - Azure Databricks](https://learn.microsoft.com/en-us/azure/databricks/tables/operations/auto-ttl)
+# MAGIC **Source:** [Automatic row deletion with auto time-to-live](https://learn.microsoft.com/en-us/azure/databricks/tables/operations/auto-ttl)
 # MAGIC
 # MAGIC **Notes:**
 # MAGIC - Auto-TTL requires Predictive Optimization to be enabled

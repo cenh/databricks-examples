@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # ai_mask(): Masking PII in free text with one line of SQL
 # MAGIC
+# MAGIC **Article:** [Masking PII in One Line of SQL: Meet Databricks ai_mask()](https://medium.com/@cralle/databricks-ai-mask-pii-masking-sql-3fa6f81eb52d?sk=cdd46c9361354dd94195c8a92a1ff8c1)
+# MAGIC
 # MAGIC `ai_mask()` is a task-specific AI Function (Public Preview) that calls a
 # MAGIC generative AI model to mask the entities you name in a string, and returns
 # MAGIC the text with those entities replaced by `[MASKED]`.
@@ -12,7 +14,7 @@
 # MAGIC - A region that supports AI Functions optimized for batch inference
 # MAGIC - Not available on Pro or Classic SQL warehouses
 # MAGIC
-# MAGIC This notebook uses `cenh_testing.default` for its sample table.
+# MAGIC This notebook uses `testing.default` for its sample table.
 
 # COMMAND ----------
 
@@ -47,12 +49,12 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE cenh_testing.default.customer_reviews (
+# MAGIC CREATE OR REPLACE TABLE testing.default.customer_reviews (
 # MAGIC   review_id   INT,
 # MAGIC   review_text STRING
 # MAGIC );
 # MAGIC
-# MAGIC INSERT INTO cenh_testing.default.customer_reviews VALUES
+# MAGIC INSERT INTO testing.default.customer_reviews VALUES
 # MAGIC   (1, 'Sarah Chen loved the new blender. Reach her at sarah.chen@example.com for a quote.'),
 # MAGIC   (2, 'Terrible support. I called 555-0182 three times and no one from the team called back.'),
 # MAGIC   (3, 'Dr. Okafor recommended this to our clinic. Email orders to procurement@northside.org.'),
@@ -74,7 +76,7 @@
 # MAGIC   review_id,
 # MAGIC   review_text,
 # MAGIC   ai_mask(review_text, array('person', 'email', 'phone number')) AS masked_review
-# MAGIC FROM cenh_testing.default.customer_reviews
+# MAGIC FROM testing.default.customer_reviews
 # MAGIC ORDER BY review_id;
 
 # COMMAND ----------
@@ -108,7 +110,7 @@
 import pyspark.sql.functions as F
 
 masked_df = (
-    spark.read.table("cenh_testing.default.customer_reviews")
+    spark.read.table("testing.default.customer_reviews")
     .withColumn(
         "masked_review",
         F.expr("ai_mask(review_text, array('person', 'email', 'phone number'))"),
@@ -116,10 +118,10 @@ masked_df = (
 )
 
 masked_df.write.mode("overwrite").saveAsTable(
-    "cenh_testing.default.customer_reviews_masked"
+    "testing.default.customer_reviews_masked"
 )
 
-display(spark.read.table("cenh_testing.default.customer_reviews_masked").orderBy("review_id"))
+display(spark.read.table("testing.default.customer_reviews_masked").orderBy("review_id"))
 
 # COMMAND ----------
 
@@ -161,16 +163,24 @@ display(spark.read.table("cenh_testing.default.customer_reviews_masked").orderBy
 # MAGIC %md
 # MAGIC ## 7. Optional: check batch inference cost
 # MAGIC `ai_mask()` usage is billed as batch inference under the `MODEL_SERVING`
-# MAGIC product. Replace `<workspace_id>` with your workspace ID.
+# MAGIC product. The query below scopes usage to the current workspace; the
+# MAGIC workspace ID is read from the notebook context, so the cell runs as-is.
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC SELECT *
-# MAGIC FROM system.billing.usage u
-# MAGIC WHERE u.usage_metadata.workspace_id = <workspace_id>
-# MAGIC   AND u.billing_origin_product = 'MODEL_SERVING'
-# MAGIC   AND u.product_features.model_serving.offering_type = 'BATCH_INFERENCE';
+# workspace_id is a top-level column in system.billing.usage. Read the current
+# workspace ID from the notebook context so there is nothing to fill in by hand.
+workspace_id = (
+    dbutils.notebook.entry_point.getDbutils().notebook().getContext().workspaceId().get()
+)
+
+display(spark.sql(f"""
+  SELECT *
+  FROM system.billing.usage u
+  WHERE u.workspace_id = '{workspace_id}'
+    AND u.billing_origin_product = 'MODEL_SERVING'
+    AND u.product_features.model_serving.offering_type = 'BATCH_INFERENCE'
+"""))
 
 # COMMAND ----------
 
@@ -180,8 +190,8 @@ display(spark.read.table("cenh_testing.default.customer_reviews_masked").orderBy
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC -- DROP TABLE IF EXISTS cenh_testing.default.customer_reviews;
-# MAGIC -- DROP TABLE IF EXISTS cenh_testing.default.customer_reviews_masked;
+# MAGIC -- DROP TABLE IF EXISTS testing.default.customer_reviews;
+# MAGIC -- DROP TABLE IF EXISTS testing.default.customer_reviews_masked;
 
 # COMMAND ----------
 

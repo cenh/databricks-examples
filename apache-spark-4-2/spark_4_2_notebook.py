@@ -1,10 +1,12 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Apache Spark 4.2: Change Data Capture Moves Into the Engine
+# MAGIC # Apache Spark 4.2: What Data Engineers Need to Know About Auto CDC and Metric Views
 # MAGIC
-# MAGIC Companion notebook for the Medium article. Run on **Databricks Runtime 19 (Beta)** or later, which ships Apache Spark 4.2.
+# MAGIC **Article:** [Apache Spark 4.2: What Data Engineers Need to Know About Auto CDC and Metric Views](https://medium.com/@cralle/what-developers-need-to-know-about-apache-spark-4-2-bcc70f2c7c7d?sk=0669d6d830361919661f31a2e1bc02bc)
 # MAGIC
-# MAGIC Catalog/schema used throughout: `cenh_testing.default`.
+# MAGIC Companion notebook. The interactive sections run on serverless or Databricks Runtime 19 (Beta) or later, which ships Apache Spark 4.2.
+# MAGIC
+# MAGIC Catalog/schema used throughout: `testing.default`.
 # MAGIC
 # MAGIC Notes:
 # MAGIC - The **Auto CDC** section uses Spark Declarative Pipelines (SDP) and must be run as a pipeline, not interactively. It is included here for reference and screenshots.
@@ -19,14 +21,14 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE CATALOG IF NOT EXISTS cenh_testing;
-# MAGIC CREATE SCHEMA IF NOT EXISTS cenh_testing.default;
+# MAGIC CREATE CATALOG IF NOT EXISTS testing;
+# MAGIC CREATE SCHEMA IF NOT EXISTS testing.default;
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC -- Orders table for metric views and QUALIFY examples
-# MAGIC CREATE OR REPLACE TABLE cenh_testing.default.orders (
+# MAGIC CREATE OR REPLACE TABLE testing.default.orders (
 # MAGIC   order_id     BIGINT,
 # MAGIC   customer_id  BIGINT,
 # MAGIC   order_date   DATE,
@@ -34,7 +36,7 @@
 # MAGIC   amount       DOUBLE
 # MAGIC );
 # MAGIC
-# MAGIC INSERT INTO cenh_testing.default.orders VALUES
+# MAGIC INSERT INTO testing.default.orders VALUES
 # MAGIC   (1, 100, DATE'2024-02-11', 'EMEA',   120.00),
 # MAGIC   (2, 100, DATE'2024-03-04', 'EMEA',    80.00),
 # MAGIC   (3, 101, DATE'2024-02-19', 'AMER',   250.00),
@@ -45,33 +47,38 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC -- Customers dimension (target of the CDC examples) with change data feed enabled
-# MAGIC CREATE OR REPLACE TABLE cenh_testing.default.customers (
+# MAGIC -- Customers dimension (target of the CDC examples) with change data feed enabled.
+# MAGIC -- DROP + CREATE (instead of CREATE OR REPLACE) resets the Delta version history to 0 on every
+# MAGIC -- run, so the table_changes(..., 1) read further down always starts at the first INSERT even
+# MAGIC -- if the table already existed from a previous run.
+# MAGIC DROP TABLE IF EXISTS testing.default.customers;
+# MAGIC
+# MAGIC CREATE TABLE testing.default.customers (
 # MAGIC   customer_id  BIGINT,
 # MAGIC   name         STRING,
 # MAGIC   city         STRING
 # MAGIC ) TBLPROPERTIES (delta.enableChangeDataFeed = true);
 # MAGIC
-# MAGIC INSERT INTO cenh_testing.default.customers VALUES
+# MAGIC INSERT INTO testing.default.customers VALUES
 # MAGIC   (100, 'Ada Lovelace',   'London'),
 # MAGIC   (101, 'Alan Turing',    'Manchester'),
 # MAGIC   (102, 'Grace Hopper',   'New York');
 # MAGIC
-# MAGIC -- A second version so CHANGES FROM VERSION 0 TO VERSION 1 returns rows
-# MAGIC UPDATE cenh_testing.default.customers SET city = 'Cambridge' WHERE customer_id = 101;
+# MAGIC -- A second version so the change feed from version 1 returns the INSERT and this UPDATE
+# MAGIC UPDATE testing.default.customers SET city = 'Cambridge' WHERE customer_id = 101;
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC -- Staging table for the INSERT ... BY NAME schema evolution example
-# MAGIC CREATE OR REPLACE TABLE cenh_testing.default.customers_staging (
+# MAGIC CREATE OR REPLACE TABLE testing.default.customers_staging (
 # MAGIC   customer_id   BIGINT,
 # MAGIC   name          STRING,
 # MAGIC   city          STRING,
 # MAGIC   loyalty_tier  STRING
 # MAGIC );
 # MAGIC
-# MAGIC INSERT INTO cenh_testing.default.customers_staging VALUES
+# MAGIC INSERT INTO testing.default.customers_staging VALUES
 # MAGIC   (104, 'Katherine Johnson', 'Hampton', 'gold');
 
 # COMMAND ----------
@@ -79,7 +86,7 @@
 # MAGIC %sql
 # MAGIC -- Raw change feed that the Auto CDC pipeline consumes.
 # MAGIC -- Run this here (interactive), NOT inside the pipeline.
-# MAGIC CREATE OR REPLACE TABLE cenh_testing.default.customers_cdc_raw
+# MAGIC CREATE OR REPLACE TABLE testing.default.customers_cdc_raw
 # MAGIC AS SELECT * FROM (VALUES
 # MAGIC   (100, 'Ada Lovelace', 'London',     'INSERT', 1),
 # MAGIC   (101, 'Alan Turing',  'Manchester', 'INSERT', 1),
@@ -97,10 +104,10 @@
 # MAGIC inside a pipeline run. Running it here raises `PIPELINES_NOT_SUPPORTED`.
 # MAGIC
 # MAGIC To run it: create a Lakeflow pipeline (serverless, or Pro/Advanced edition) whose source is the
-# MAGIC companion file **`auto_cdc_pipeline.py`**, set its default catalog to `cenh_testing` and schema to
-# MAGIC `default`, then run the pipeline. The source table `cenh_testing.default.customers_cdc_raw` is
+# MAGIC companion file **`auto_cdc_pipeline.py`**, set its default catalog to `testing` and schema to
+# MAGIC `default`, then run the pipeline. The source table `testing.default.customers_cdc_raw` is
 # MAGIC created in the setup section above. The flow below produces the streaming table
-# MAGIC `cenh_testing.default.customers_current` (final state: 100 London, 101 Cambridge; 102 deleted).
+# MAGIC `testing.default.customers_current` (final state: 100 London, 101 Cambridge; 102 deleted).
 # MAGIC
 # MAGIC The pipeline code, shown here for reference only (do not run in this notebook):
 # MAGIC
@@ -110,7 +117,7 @@
 # MAGIC
 # MAGIC @dp.view
 # MAGIC def customers_changes():
-# MAGIC     return spark.readStream.table("cenh_testing.default.customers_cdc_raw")
+# MAGIC     return spark.readStream.table("testing.default.customers_cdc_raw")
 # MAGIC
 # MAGIC dp.create_streaming_table("customers_current")
 # MAGIC
@@ -136,19 +143,24 @@
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC -- New standard syntax. Requires a connector that exposes the DSv2 CDC API.
-# MAGIC -- May raise UNSUPPORTED_FEATURE.CHANGE_DATA_CAPTURE on UC-managed Delta in DBR 19 Beta.
+# MAGIC %md
+# MAGIC **Reference syntax (not executed).** The standard `CHANGES` clause is backed by the DSv2 CDC API and
+# MAGIC requires the catalog/connector to implement it. On Unity Catalog managed Delta it currently raises
+# MAGIC `UNSUPPORTED_FEATURE.CHANGE_DATA_CAPTURE`, so it is shown here for reference; the runnable
+# MAGIC `table_changes()` equivalent in the next cell returns the same row-level changes.
+# MAGIC
+# MAGIC ```sql
 # MAGIC SELECT *
-# MAGIC FROM cenh_testing.default.customers
+# MAGIC FROM testing.default.customers
 # MAGIC CHANGES FROM VERSION 0 TO VERSION 2;
+# MAGIC ```
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC -- Runnable equivalent for Delta today (needs delta.enableChangeDataFeed = true, set in setup).
 # MAGIC -- Reads row-level changes from version 1 onward: the INSERT and the UPDATE.
-# MAGIC SELECT * FROM table_changes('cenh_testing.default.customers', 1);
+# MAGIC SELECT * FROM table_changes('testing.default.customers', 1);
 
 # COMMAND ----------
 
@@ -158,12 +170,18 @@
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC SET spark.databricks.delta.schema.autoMerge.enabled = true;
-# MAGIC
-# MAGIC INSERT INTO cenh_testing.default.customers BY NAME
-# MAGIC SELECT customer_id, name, city, loyalty_tier
-# MAGIC FROM cenh_testing.default.customers_staging;
+# On serverless, spark.databricks.delta.schema.autoMerge.enabled cannot be SET in the session, so
+# schema evolution is requested per-write with mergeSchema. Delta appends by column name (the same
+# idea as INSERT ... BY NAME) and adds the new loyalty_tier column to the target automatically.
+(
+    spark.table("testing.default.customers_staging")
+    .write.format("delta")
+    .mode("append")
+    .option("mergeSchema", "true")
+    .saveAsTable("testing.default.customers")
+)
+
+display(spark.table("testing.default.customers").orderBy("customer_id"))
 
 # COMMAND ----------
 
@@ -174,12 +192,12 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE VIEW cenh_testing.default.orders_metrics
+# MAGIC CREATE OR REPLACE VIEW testing.default.orders_metrics
 # MAGIC WITH METRICS
 # MAGIC LANGUAGE YAML
 # MAGIC AS $$
 # MAGIC version: 1.1
-# MAGIC source: cenh_testing.default.orders
+# MAGIC source: testing.default.orders
 # MAGIC filter: order_date > '2024-01-01'
 # MAGIC fields:
 # MAGIC   - name: order_month
@@ -197,7 +215,7 @@
 
 # MAGIC %sql
 # MAGIC SELECT region, MEASURE(distinct_customers) AS customers
-# MAGIC FROM cenh_testing.default.orders_metrics
+# MAGIC FROM testing.default.orders_metrics
 # MAGIC GROUP BY region;
 
 # COMMAND ----------
@@ -215,7 +233,7 @@ import pyspark.sql.functions as F
 def name_length(s):
     return len(s) if s else 0
 
-df = spark.table("cenh_testing.default.customers")
+df = spark.table("testing.default.customers")
 df.select(name_length("name").alias("name_len")).show()
 
 # COMMAND ----------
@@ -228,7 +246,7 @@ df.select(name_length("name").alias("name_len")).show()
 
 # MAGIC %sql
 # MAGIC SELECT customer_id, order_date, amount
-# MAGIC FROM cenh_testing.default.orders
+# MAGIC FROM testing.default.orders
 # MAGIC QUALIFY ROW_NUMBER() OVER (
 # MAGIC   PARTITION BY customer_id ORDER BY order_date DESC
 # MAGIC ) = 1;

@@ -11,4 +11,8 @@
 ## Requirements
 
 - Predictive Optimization enabled on the catalog, schema, or table
-- Databricks Runtime 17.3 or above to set Auto-TTL policies (DBR 17.2 and below can still read/write tables with Auto-TTL configured)
+- Databricks Runtime 17.3 or above, or serverless, to set Auto-TTL policies (DBR 17.2 and below can still read/write tables with Auto-TTL configured)
+
+## Setup
+
+Run the notebook top to bottom on serverless (or a DBR 17.3+ cluster). It creates its own sample tables in `testing.default` (change the catalog and schema in the cells if you use different names), sets and verifies Auto-TTL policies, runs a Structured Streaming read, then drops everything it created in the final Cleanup cells so the notebook is safe to re-run.

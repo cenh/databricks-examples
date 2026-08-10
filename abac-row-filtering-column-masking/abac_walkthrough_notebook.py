@@ -1,8 +1,10 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # ABAC, Governed Tags, and Data Classification: PySpark Walkthrough
+# MAGIC # Stop Writing Row Filters Table by Table: ABAC Is Now GA in Unity Catalog
 # MAGIC
-# MAGIC Companion notebook to the Medium article *"Stop Writing Row Filters Table by Table: ABAC Is Now GA in Unity Catalog."*
+# MAGIC **Article:** [Stop Writing Row Filters Table by Table: ABAC Is Now GA in Unity Catalog](https://medium.com/@cralle/govern-once-protect-everywhere-abac-row-filtering-and-column-masking-is-ga-in-unity-catalog-0cfc1165db70?sk=19d73edd3ac4c11f114cc53065ac8370)
+# MAGIC
+# MAGIC Companion notebook: a PySpark walkthrough of Attribute-Based Access Control (ABAC), Governed Tags, and Data Classification in Unity Catalog.
 # MAGIC
 # MAGIC This notebook walks through the full pattern end to end:
 # MAGIC 1. Create governed tags

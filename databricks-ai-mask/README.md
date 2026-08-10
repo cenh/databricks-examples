@@ -16,3 +16,7 @@ The notebook masks single strings, builds a small table of customer reviews with
 - Serverless compute (notebooks and workflows)
 - A region that supports AI Functions optimized for batch inference
 - Not available on Pro or Classic SQL warehouses
+
+## Setup
+
+Run the notebook top to bottom on serverless. It creates its own sample table (`customer_reviews`) in `testing.default` and writes a masked copy (`customer_reviews_masked`); change the catalog and schema in the cells if you use different names. The final cost-check cell reads `system.billing.usage` and scopes the query to the current workspace automatically. The Cleanup cell's `DROP` statements are commented out so the masked output is left for inspection; uncomment them to remove both tables.
