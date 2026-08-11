@@ -1,4 +1,4 @@
-**Article:** [Databricks Pipeline Unit Testing Finally Arrives](<paste Medium article link once published>)
+**Article:** [Databricks Pipeline Unit Testing Finally Arrives](https://medium.com/@cralle/databricks-pipeline-unit-testing-beta-05bac4c4f808?sk=ccb7b00a1dc2565a7ca2dbeb219b05a4)
 
 # Databricks Pipeline Unit Testing Finally Arrives
 
