@@ -206,6 +206,66 @@ query.awaitTermination()
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## 7. Auto-TTL on streaming tables (Lakeflow Spark Declarative Pipelines)
+# MAGIC
+# MAGIC Streaming-table support landed in the same GA release as the rest of Auto-TTL, and it is the
+# MAGIC part of the feature most likely to be new to you, so it is worth covering here even though
+# MAGIC none of it can execute inside a notebook cell.
+# MAGIC
+# MAGIC **Why these cells are reference-only.** A streaming table is defined *inside a pipeline*, and
+# MAGIC the `@dp.table` decorator is only meaningful when the file is evaluated as pipeline source
+# MAGIC code. Running the Python below in a notebook attached to a cluster does nothing useful: the
+# MAGIC decorator registers a dataset with a pipeline context that does not exist here. The same is
+# MAGIC true of `CREATE STREAMING TABLE ... DELETE ROWS`, which needs a pipeline to own the table.
+# MAGIC See **Manual setup required** in the README for how to run these for real.
+# MAGIC
+# MAGIC ### SQL form
+# MAGIC
+# MAGIC Attach the retention policy in the same statement that defines the streaming table:
+# MAGIC
+# MAGIC ```sql
+# MAGIC CREATE STREAMING TABLE testing.default.clickstream
+# MAGIC DELETE ROWS 30 DAYS AFTER event_time
+# MAGIC AS SELECT * FROM STREAM(testing.default.raw_events)
+# MAGIC ```
+# MAGIC
+# MAGIC ### Python form
+# MAGIC
+# MAGIC The same policy expressed as the `auto_ttl` parameter on `@dp.table`:
+# MAGIC
+# MAGIC ```python
+# MAGIC from pyspark import pipelines as dp
+# MAGIC
+# MAGIC @dp.table(
+# MAGIC     auto_ttl={"timestamp_column": "event_time", "expire_in_days": 30}
+# MAGIC )
+# MAGIC def clickstream():
+# MAGIC     return spark.readStream.format("delta").table("testing.default.raw_events")
+# MAGIC ```
+# MAGIC
+# MAGIC ### Removing the policy
+# MAGIC
+# MAGIC `ALTER TABLE ... DROP ROW DELETION` and `ALTER STREAMING TABLE` cannot change Auto-TTL on a
+# MAGIC streaming table. You edit the pipeline source and republish. Setting `auto_ttl=None` removes
+# MAGIC the policy:
+# MAGIC
+# MAGIC ```python
+# MAGIC from pyspark import pipelines as dp
+# MAGIC
+# MAGIC @dp.table(
+# MAGIC     auto_ttl=None
+# MAGIC )
+# MAGIC def clickstream():
+# MAGIC     return spark.readStream.format("delta").table("testing.default.raw_events")
+# MAGIC ```
+# MAGIC
+# MAGIC The same `skipChangeCommits` rule from section 4 applies to anything reading downstream of a
+# MAGIC streaming table with Auto-TTL: Auto-TTL deletions surface as data changes, and the read fails
+# MAGIC without it.
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Cleanup
 
 # COMMAND ----------
@@ -224,7 +284,7 @@ dbutils.fs.rm("/tmp/auto_ttl_demo_checkpoint", True)
 
 # MAGIC %md
 # MAGIC ---
-# MAGIC **Source:** [Automatic row deletion with auto time-to-live](https://learn.microsoft.com/en-us/azure/databricks/tables/operations/auto-ttl)
+# MAGIC **Source:** [Automatic row deletion with auto time-to-live](https://docs.databricks.com/aws/en/tables/operations/auto-ttl)
 # MAGIC
 # MAGIC **Notes:**
 # MAGIC - Auto-TTL requires Predictive Optimization to be enabled
@@ -233,3 +293,5 @@ dbutils.fs.rm("/tmp/auto_ttl_demo_checkpoint", True)
 # MAGIC - Deletion is asynchronous; use system tables to verify deletions occurred
 # MAGIC - Buffer time between row expiration and permanent deletion can be up to 6 days plus the data retention period (default 7 days)
 # MAGIC - Always set `skipChangeCommits = true` on streaming reads from Auto-TTL tables
+# MAGIC - Streaming-table policies are set in pipeline source code, not with `ALTER TABLE`, and are
+# MAGIC   changed by editing the pipeline and republishing (see section 7)

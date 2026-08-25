@@ -9,7 +9,7 @@
 # MAGIC %md
 # MAGIC ## Overview
 # MAGIC
-# MAGIC Databricks Asset Bundles (DABs) can now declare Unity Catalog **catalogs** and
+# MAGIC Declarative Automation Bundles can now declare Unity Catalog **catalogs** and
 # MAGIC **schemas** directly as bundle `resources`, instead of creating them by hand with
 # MAGIC SQL/the UI, or managing them separately with Terraform. That means a catalog or
 # MAGIC schema can live in `databricks.yml` next to the jobs, pipelines, and workflows that
@@ -51,7 +51,7 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Example 1: Creating a Catalog with DABs
+# MAGIC ## Example 1: Creating a Catalog with Declarative Automation Bundles
 # MAGIC
 # MAGIC Inside `databricks.yml`, a catalog is declared as a bundle resource:
 # MAGIC
@@ -60,7 +60,7 @@
 # MAGIC   catalogs:
 # MAGIC     ch_enterprise_bundles:
 # MAGIC       name: ch_enterprise_bundles
-# MAGIC       comment: Catalog created by Databricks Asset Bundles
+# MAGIC       comment: Catalog created by Declarative Automation Bundles
 # MAGIC       properties:
 # MAGIC         purpose: "Testing"
 # MAGIC       grants:
@@ -92,7 +92,7 @@
 
 # MAGIC %sql
 # MAGIC CREATE CATALOG IF NOT EXISTS ch_enterprise_bundles
-# MAGIC COMMENT 'Catalog created by Databricks Asset Bundles';
+# MAGIC COMMENT 'Catalog created by Declarative Automation Bundles';
 
 # COMMAND ----------
 
@@ -115,7 +115,7 @@
 # MAGIC     ch_enterprise_analytics:
 # MAGIC       name: analytics
 # MAGIC       catalog_name: ${resources.catalogs.ch_enterprise_bundles.name}
-# MAGIC       comment: Analytics schema created via DAB
+# MAGIC       comment: Analytics schema created via Declarative Automation Bundles
 # MAGIC       grants:
 # MAGIC         - principal: ch_enterprise_analysts
 # MAGIC           privileges:
@@ -146,7 +146,7 @@
 
 # MAGIC %sql
 # MAGIC CREATE SCHEMA IF NOT EXISTS ch_enterprise_bundles.analytics
-# MAGIC COMMENT 'Analytics schema created via DAB';
+# MAGIC COMMENT 'Analytics schema created via Declarative Automation Bundles';
 
 # COMMAND ----------
 
@@ -197,7 +197,7 @@ schemas_df.filter(F.col("databaseName") == "analytics").display()
 # MAGIC     ch_enterprise_test_schema:
 # MAGIC       name: ch-enterprise-test-{{.unique_id}}
 # MAGIC       catalog_name: testing
-# MAGIC       comment: Created by Databricks Asset Bundles
+# MAGIC       comment: Created by Declarative Automation Bundles
 # MAGIC ```
 # MAGIC
 # MAGIC This is a bundle-only construct: the templated `{{.unique_id}}` name, the
