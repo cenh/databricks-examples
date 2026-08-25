@@ -2,7 +2,7 @@
 
 # Declarative Automation Bundles: Creating Unity Catalog Catalogs and Schemas
 
-A walkthrough of declaring Unity Catalog catalogs and schemas as `resources` inside a Databricks Asset Bundle's `databricks.yml`, instead of creating them by hand with SQL/the UI or managing them separately with Terraform. Catalog and schema bundle resources require the direct deployment engine (Databricks CLI 0.287.0+), so they live alongside the jobs, pipelines, and grants a bundle already deploys.
+A walkthrough of declaring Unity Catalog catalogs and schemas as `resources` inside a Declarative Automation Bundle's `databricks.yml`, instead of creating them by hand with SQL/the UI or managing them separately with Terraform. Catalog and schema bundle resources require the direct deployment engine (Databricks CLI 0.287.0+), so they live alongside the jobs, pipelines, and grants a bundle already deploys.
 
 The notebook shows the bundle YAML for creating a catalog, creating a schema inside it, and referencing that schema from a pipeline, then runs the equivalent SQL DDL (`CREATE CATALOG`, `CREATE SCHEMA`, `SHOW CATALOGS`/`SHOW SCHEMAS`) so the state a real `databricks bundle deploy` would produce can be verified directly in a workspace. The matching `GRANT` statements are shown as illustrative SQL rather than run, since they target placeholder principals that will not exist in a reader's workspace. A dedicated section covers the CLI commands (`validate` / `deploy` / `destroy`) that have to be run manually from a terminal, since they cannot execute inside a notebook cell.
 
