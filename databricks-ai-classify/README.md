@@ -1,4 +1,4 @@
-**Article:** [PLACEHOLDER - add the live Medium title and URL once the article is published]
+**Article:** [Databricks ai_classify: Classify Text in SQL](https://medium.com/@cralle/databricks-ai-classify-sql-text-classification-992ecc574512?sk=3e3cdfc46292caae3f162c1af250aca4)
 
 # Databricks ai_classify(): Text Classification in One Line of SQL
 

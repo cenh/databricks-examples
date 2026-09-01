@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # ai_classify(): text classification in one line of SQL
 # MAGIC
+# MAGIC **Article:** [Databricks ai_classify: Classify Text in SQL](https://medium.com/@cralle/databricks-ai-classify-sql-text-classification-992ecc574512?sk=3e3cdfc46292caae3f162c1af250aca4)
+# MAGIC
 # MAGIC `ai_classify()` is a task-specific AI Function that classifies text against
 # MAGIC labels you provide. Multi-label classification works from version 2.0;
 # MAGIC confidence scores and rationales require version 2.1.
