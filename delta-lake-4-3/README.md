@@ -1,4 +1,4 @@
-**Article:** [Delta Lake 4.3: Selective Data Replacement and the Unity Catalog Delta APIs](https://medium.com/@cralle/delta-lake-4-3-selective-data-replacement)
+**Article:** [Delta Lake 4.3: Selective Data Replacement and the Unity Catalog Delta APIs](https://medium.com/@cralle/delta-lake-4-3-selective-data-replacement-5a8fba735f02?sk=30106a30098531f123bb97c91b6e5865)
 
 # Delta Lake 4.3: Selective Data Replacement and the Unity Catalog Delta APIs
 
