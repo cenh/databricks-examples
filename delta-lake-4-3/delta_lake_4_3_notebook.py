@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Delta Lake 4.3: Selective Data Replacement with replaceUsing and replaceOn
 # MAGIC
-# MAGIC **Article:** [Delta Lake 4.3: Selective Data Replacement and the Unity Catalog Delta APIs](https://medium.com/@cralle/delta-lake-4-3-selective-data-replacement)
+# MAGIC **Article:** [Delta Lake 4.3: Selective Data Replacement and the Unity Catalog Delta APIs](https://medium.com/@cralle/delta-lake-4-3-selective-data-replacement-5a8fba735f02?sk=30106a30098531f123bb97c91b6e5865)
 # MAGIC
 # MAGIC **Author:** Christian Hansen ([https://medium.com/@cralle](https://medium.com/@cralle))
 # MAGIC
