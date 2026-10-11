@@ -13,6 +13,7 @@ I'm Christian Hansen, a Lead Data Engineer and Databricks Champion at [Halfspace
 
 | Folder | Article |
 | --- | --- |
+| [`abac-cross-engine-views`](./abac-cross-engine-views) | [Databricks ABAC Now Follows Your Data: External Engines and Views](https://medium.com/@cralle/databricks-abac-external-engines-views-09557e458889?sk=d3651728a145da381f0b7bde2398f8d9) |
 | [`abac-row-filtering-column-masking`](./abac-row-filtering-column-masking) | [Stop Writing Row Filters Table by Table: ABAC Is Now GA in Unity Catalog](https://medium.com/@cralle/govern-once-protect-everywhere-abac-row-filtering-and-column-masking-is-ga-in-unity-catalog-0cfc1165db70?sk=19d73edd3ac4c11f114cc53065ac8370) |
 | [`abac-setup-guide`](./abac-setup-guide) | [ABAC in Databricks Unity Catalog: A Step-by-Step Guide to Row Filters and Column Masks](https://medium.com/@cralle/a-step-by-step-guide-to-setting-up-abac-in-databricks-unity-catalog-8266454bc87f?sk=f6ae1e1a285d4bd2b04a8ebf1225cc8d) |
 | [`apache-spark-4-0`](./apache-spark-4-0) | [What Developers Need to Know About Apache Spark 4.0](https://medium.com/@cralle/what-developers-need-to-know-about-apache-spark-4-0-508d0e4a5370?sk=2a635c3e28a7aa90c655d0a2da421725) |
