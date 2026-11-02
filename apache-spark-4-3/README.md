@@ -1,4 +1,4 @@
-**Article:** [Apache Spark 4.3: What Developers Need to Know](PASTE_MEDIUM_LINK)
+**Article:** [Apache Spark 4.3: What Developers Need to Know](https://medium.com/@cralle/1896a29f1538?sk=9da546846112e07966435aa60a289207)
 
 # Apache Spark 4.3: What Developers Need to Know
 

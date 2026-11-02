@@ -2,6 +2,8 @@
 # MAGIC %md
 # MAGIC # Apache Spark 4.3: What Developers Need to Know
 # MAGIC
+# MAGIC **Article:** [Apache Spark 4.3: What Developers Need to Know](https://medium.com/@cralle/1896a29f1538?sk=9da546846112e07966435aa60a289207)
+# MAGIC
 # MAGIC Companion notebook for the Medium article. It walks through the Apache Spark 4.3.0 features covered there, using a sample company called CH Enterprise:
 # MAGIC
 # MAGIC 1. `ASOF JOIN` (behind a flag)
